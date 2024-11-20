@@ -5,8 +5,4 @@ python-multipart
 googletrans
 pandas
 numpy
-sklearn
-pickle
-typing
-collections
-pathlib
+scikit-learn

@@ -18,8 +18,6 @@ async def predict_disease(request: SymptomRequest):
     try:
         # Process text and extract symptoms
         processed_text = preprocess_text(request.text)
-        print("hello World")
-        print(processed_text)
         symptoms = prediction_system.extract_symptoms(processed_text)
         print(symptoms)
         if not symptoms:

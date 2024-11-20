@@ -19,7 +19,6 @@ async def predict_disease(request: SymptomRequest):
         # Process text and extract symptoms
         processed_text = preprocess_text(request.text)
         symptoms = prediction_system.extract_symptoms(processed_text)
-        print(symptoms)
         if not symptoms:
             raise HTTPException(
                 status_code=400,

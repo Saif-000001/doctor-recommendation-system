@@ -81,7 +81,7 @@ class DiseasePredictionSystem:
             predicted = []
             
             # Get predictions from all models
-            for model_name, values in self.models.items():
+            for _, values in self.models.items():
                 predict_disease = values["model"].predict(input_df)
                 predict_disease = self.label_encoder.inverse_transform(predict_disease)
                 predicted.extend(predict_disease)

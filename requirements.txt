@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pydantic
+python-multipart
+googletrans
+pandas
+numpy
+sklearn
+pickle
+typing
+collections
+pathlib

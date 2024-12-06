@@ -74,7 +74,7 @@ async def predict_treatment(request: TreatmentRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Prediction treatment section failed: {str(e)}")
-
+            
 @app.get("/symptoms")
 async def get_valid_symptoms():
     return {"symptoms": prediction_symptoms.valid_symptoms}

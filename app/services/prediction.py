@@ -9,7 +9,7 @@ from ..utils.text_processing import extract_words, preprocess_text
 
 class SymptomsPredictionSystem:
     def __init__(self):
-        self.model =self._load_model(settings.LOGISTIC_REGRESSION_MODEL)
+        self.model =self._load_model(settings.SUPPORT_VECTOR_CLASSIFICATION_MODEL)
         self.valid_symptoms = list(self.model.feature_names_in_)
     
     def _load_model(self, model_path):

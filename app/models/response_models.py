@@ -7,7 +7,18 @@ class DiseasePrediction(BaseModel):
     specialist: str
     description: str
 
-class PredictionResponse(BaseModel):
+class PredictionDoctor(BaseModel):
     detected_symptoms: List[str]
     predictions: List[DiseasePrediction]
     prediction_summary: dict
+
+class PredictionTreatment(BaseModel):
+    predicted_disease: str 
+    description: str 
+    precautions: List[str]
+    medications: str
+    workout: List[str]
+    diets: str
+
+class PredictionSymptoms(BaseModel):
+    symptoms: List[str]

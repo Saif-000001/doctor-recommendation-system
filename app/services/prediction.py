@@ -5,11 +5,38 @@ import pickle
 from typing import List, Dict
 from collections import Counter
 from ..core.config import settings
-from ..utils.text_processing import extract_words
+from ..utils.text_processing import extract_words, preprocess_text
 
-class DiseasePredictionSystem:
+class SymptomsPredictionSystem:
     def __init__(self):
-        """Initialize the disease prediction system"""
+        self.model =self._load_model(settings.LOGISTIC_REGRESSION_MODEL)
+        self.valid_symptoms = list(self.model.feature_names_in_)
+    
+    def _load_model(self, model_path):
+        try:
+            with open(model_path, 'rb') as f:
+                return pickle.load(f)
+        except Exception as e:
+            raise Exception(f"Error loading model {model_path}: {str(e)}")
+
+    def extract_symptoms(self, text: str)-> List[str]:
+        try:
+            en_convert = preprocess_text(text)
+            words = extract_words(en_convert)
+            matched_symptoms = []
+            
+            for symptom in self.valid_symptoms:
+                symptom_parts = set(symptom.lower().split('_'))
+                if symptom_parts.issubset(words):
+                    matched_symptoms.append(symptom)
+            
+            return matched_symptoms
+        except Exception as e:
+            raise Exception(f"Symptom extraction error: {str(e)}")
+
+
+class DoctorPredictionSystem:
+    def __init__(self):
         try:
             # Load data
             self.doctor_data = pd.read_csv(
@@ -25,6 +52,8 @@ class DiseasePredictionSystem:
                 'Pulmonologist',
                 self.doctor_data['Specialist']
             )
+            symptom = SymptomsPredictionSystem()
+            self._load_model = symptom._load_model
             
             # Load all models
             self.models = {
@@ -40,35 +69,12 @@ class DiseasePredictionSystem:
             self.label_encoder = LabelEncoder()
             self.label_encoder.fit(self.doctor_data['Disease'])
             # Use features from logistic regression as baseline
-            self.valid_symptoms = list(self.models['Logistic Regression']["model"].feature_names_in_)
+            self.valid_symptoms =  symptom.valid_symptoms
             
         except Exception as e:
-            raise Exception(f"Error initializing prediction system: {str(e)}")
+            raise Exception(f"Error initializing doctor construction system: {str(e)}")
 
-    def _load_model(self, model_path):
-        """Helper function to load a model"""
-        try:
-            with open(model_path, 'rb') as f:
-                return pickle.load(f)
-        except Exception as e:
-            raise Exception(f"Error loading model {model_path}: {str(e)}")
-
-    def extract_symptoms(self, text: str) -> List[str]:
-        """Extract symptoms from text"""
-        try:
-            words = extract_words(text)
-            matched_symptoms = []
-            
-            for symptom in self.valid_symptoms:
-                symptom_parts = set(symptom.lower().split('_'))
-                if symptom_parts.issubset(words):
-                    matched_symptoms.append(symptom)
-            
-            return matched_symptoms
-        except Exception as e:
-            raise Exception(f"Symptom extraction error: {str(e)}")
-    def predict_disease(self, symptoms: List[str]) -> Dict:
-        """Make disease prediction using all models"""
+    def predict_doctor(self, symptoms: List[str]):
         try:
             if not symptoms:
                 raise ValueError("No symptoms provided")
@@ -130,5 +136,92 @@ class DiseasePredictionSystem:
             }
             
         except Exception as e:
-            raise Exception(f"Prediction error: {str(e)}")
-prediction_system = DiseasePredictionSystem()
+            raise Exception(f"Doctor Prediction error: {str(e)}")
+
+class TreatmentPredictionSystem:
+    def __init__(self):
+        try:
+            # data 
+            self.descriptions_df = pd.read_csv(settings.DESCRIPTION_DATA_PATH)
+            self.precautions_df = pd.read_csv(settings.PRECAUTIONS_DATA_PATH)
+            self.medications_df = pd.read_csv(settings.MEDICATIONS_DATA_PATH)
+            self.diets_df = pd.read_csv(settings.DIETS_DATA_PATH)
+            self.workout_df = pd.read_csv(settings.WORKOUT_DATA_PATH)
+
+            # model
+            load_model = SymptomsPredictionSystem()
+            self.model = load_model._load_model(settings.SUPPORT_VECTOR_CLASSIFICATION_MODEL)
+            # Create symptoms dictionary
+
+            self.symptoms_dict = settings.SYMPTOM_DICT
+            # Create diseases dictionary  
+            self.diseases_list = settings.DISEASES_LIST
+        
+        except Exception as e:
+            raise Exception(f"Error initializing treatment construction system: {str(e)}")
+  
+    def treatmentFunction(self, predicted_disease):
+        try:
+            descriptions = self.descriptions_df[self.descriptions_df['Disease'] == predicted_disease]['Description']
+            descriptions = " ".join([description for description in descriptions])
+
+            precautions = self.precautions_df[self.precautions_df['Disease'] == predicted_disease][['Precaution_1', 'Precaution_2', 'Precaution_3', 'Precaution_4']]
+            precautions = [precaution for precaution in precautions.values]
+
+            medications = self.medications_df[self.medications_df['Disease'] == predicted_disease]['Medication']
+            medications = [med for med in medications.values]
+
+            diets = self.diets_df[self.diets_df['Disease'] == predicted_disease]['Diet']
+            diets = [diet for diet in diets.values]
+
+            workout = self.workout_df[self.workout_df['disease'] == predicted_disease] ['workout']
+            return descriptions,precautions,medications,diets,workout
+        except Exception as e:
+            raise Exception(f"Error treatment function system: {str(e)}")
+
+    # Model Prediction function
+    def get_predicted_value(self,patient_symptoms):
+        try:
+            input_vector = np.zeros(len(self.symptoms_dict))
+            for item in patient_symptoms:
+                input_vector[self.symptoms_dict[item]] = 1
+            return self.diseases_list[self.model.predict([input_vector])[0]]
+        except Exception as e:
+            raise Exception(f"Error get predicted value system: {str(e)}")
+    
+    def predict_tretment(self, symptoms:str):
+        try:
+            user_symptoms = [s.strip() for s in symptoms.split(',')]
+            user_symptoms = [symptom.strip("[]' ") for symptom in user_symptoms]
+            predicted_disease = self.get_predicted_value(user_symptoms)
+            descriptions, precautions, medications, diets, workouts = self.treatmentFunction(predicted_disease)
+
+            precautions_result = []
+            for i, precaution in enumerate(precautions[0]):
+                precautions_result.append(f"{i}: {precaution}")
+
+            workouts_result = []
+            for i, workout in enumerate(workouts):
+                workouts_result.append(f"{i}: {workout}")
+
+            return {
+                "Predicted disease": predicted_disease,
+                " Descriptions ": descriptions,
+                " Precautions ": precautions_result,
+                " Medications ": medications[0] if medications else "",
+                " Workout ": workouts_result,
+                " Diets ": diets[0] if diets else "",
+            }
+        except Exception as e:
+            raise Exception(f"Error treatment predicted value system: {str(e)}")
+
+prediction_symptoms = SymptomsPredictionSystem()
+prediction_doctor = DoctorPredictionSystem()
+prediction_treatment = TreatmentPredictionSystem()
+
+# symptom = prediction_symptoms.extract_symptoms('সকাল থেকে পেটে ব্যথা করতেছে, বিকেলে মাথাব্যথা করছিল, রাতে বমি হয়েছে ।')
+# doctor = prediction_doctor.predict_doctor(symptom)
+# treatment = prediction_treatment.predict_tretment('joint_pain')
+# print(symptom)
+# print(doctor)
+# print(treatment)

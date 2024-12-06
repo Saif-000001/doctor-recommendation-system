@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException
-from .models.request_models import SymptomRequest
-from .models.response_models import PredictionResponse
-from .services.prediction import prediction_system
+from .models.request_models import SymptomsRequest, DoctorRequest, TreatmentRequest
+from .models.response_models import PredictionSymptoms, PredictionDoctor, PredictionTreatment
+from .services.prediction import prediction_symptoms, prediction_doctor, prediction_treatment
 from .core.config import settings
-from .utils.text_processing import preprocess_text
+
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -12,13 +12,21 @@ app = FastAPI(
     version=settings.API_VERSION
 )
 
-
-@app.post("/predict", response_model=PredictionResponse)
-async def predict_disease(request: SymptomRequest):
+@app.post("/symptom", response_model=PredictionSymptoms)
+async def predict_symptoms(request: SymptomsRequest):
     try:
-        # Process text and extract symptoms
-        processed_text = preprocess_text(request.text)
-        symptoms = prediction_system.extract_symptoms(processed_text)
+        symptoms = prediction_symptoms.extract_symptoms(request.text)
+        return PredictionSymptoms(symptoms=symptoms)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Prediction symptoms section failed: {str(e)}")
+
+
+@app.post("/doctor", response_model=PredictionDoctor)
+async def predict_disease(request: DoctorRequest):
+    try:
+        symptoms = prediction_symptoms.extract_symptoms(request.text)
         if not symptoms:
             raise HTTPException(
                 status_code=400,
@@ -26,17 +34,50 @@ async def predict_disease(request: SymptomRequest):
             )
         
         # Make prediction
-        result = prediction_system.predict_disease(symptoms)
+        result = prediction_doctor.predict_doctor(symptoms)
         return result
         
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Prediction failed: {str(e)}")
+            detail=f"Prediction doctor section failed: {str(e)}")
+
+@app.post('/treatment', response_model=PredictionTreatment)
+async def predict_treatment(request: TreatmentRequest):
+    try:
+        # Extract symptoms first
+        symptoms = prediction_symptoms.extract_symptoms(request.text)
+        
+        if not symptoms:
+            raise HTTPException(
+                status_code=400,
+                detail="No symptoms could be detected in the provided text"
+            )
+        
+        # Convert symptoms list to comma-separated string
+        symptoms_str = ', '.join(symptoms)
+        
+        # Predict treatment based on symptoms
+        treatment = prediction_treatment.predict_tretment(symptoms_str)
+        
+        # Map the treatment result to the PredictionTreatment model
+        return PredictionTreatment(
+            predicted_disease=treatment.get("Predicted disease", ""),
+            description=treatment.get(" Descriptions ", ""),
+            precautions=treatment.get(" Precautions ", []),
+            medications=treatment.get(" Medications ", ""),
+            workout=treatment.get(" Workout ", []),
+            diets=treatment.get(" Diets ", "")
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Prediction treatment section failed: {str(e)}")
 
 @app.get("/symptoms")
 async def get_valid_symptoms():
-    return {"symptoms": prediction_system.valid_symptoms}
+    return {"symptoms": prediction_symptoms.valid_symptoms}
 
 @app.get("/")
 async def health_check():

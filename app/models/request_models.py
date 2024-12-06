@@ -1,4 +1,10 @@
 from pydantic import BaseModel
 
-class SymptomRequest(BaseModel):
+class DoctorRequest(BaseModel):
+    text: str
+
+class TreatmentRequest(BaseModel):
+    text: str
+
+class SymptomsRequest(BaseModel):
     text: str

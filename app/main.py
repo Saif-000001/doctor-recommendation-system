@@ -46,19 +46,25 @@ async def predict_disease(request: DoctorRequest):
 async def predict_treatment(request: TreatmentRequest):
     try:
         # Extract symptoms first
-        symptoms = prediction_symptoms.extract_symptoms(request.text)
+        # symptoms = prediction_symptoms.extract_symptoms(request.text)
         
-        if not symptoms:
-            raise HTTPException(
-                status_code=400,
-                detail="No symptoms could be detected in the provided text"
-            )
+        # if not symptoms:
+        #     raise HTTPException(
+        #         status_code=400,
+        #         detail="No symptoms could be detected in the provided text"
+        #     )
         
-        # Convert symptoms list to comma-separated string
-        symptoms_str = ', '.join(symptoms)
+        # # Convert symptoms list to comma-separated string
+        # symptoms_str = ', '.join(symptoms)
         
         # Predict treatment based on symptoms
-        treatment = prediction_treatment.predict_tretment(symptoms_str)
+        treatment = prediction_treatment.predict_tretment(request.text)
+
+        if not treatment:
+            raise HTTPException(
+                status_code=400,
+                detail="No treatment could be detected in the provided text"
+            )
         
         # Map the treatment result to the PredictionTreatment model
         return PredictionTreatment(

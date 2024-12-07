@@ -2,15 +2,18 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import pickle
-from typing import List, Dict
+from typing import List
 from collections import Counter
 from ..core.config import settings
 from ..utils.text_processing import extract_words, preprocess_text
 
 class SymptomsPredictionSystem:
     def __init__(self):
-        self.model =self._load_model(settings.SUPPORT_VECTOR_CLASSIFICATION_MODEL)
-        self.valid_symptoms = list(self.model.feature_names_in_)
+        try:
+            self.model =self._load_model(settings.SUPPORT_VECTOR_CLASSIFICATION_MODEL)
+            self.valid_symptoms = list(self.model.feature_names_in_)
+        except Exception as e:
+            raise Exception(f"symtoms construction section error: {str(e)}")
     
     def _load_model(self, model_path):
         try:
@@ -19,7 +22,7 @@ class SymptomsPredictionSystem:
         except Exception as e:
             raise Exception(f"Error loading model {model_path}: {str(e)}")
 
-    def extract_symptoms(self, text: str)-> List[str]:
+    def extract_symptoms(self, text: str):
         try:
             en_convert = preprocess_text(text)
             words = extract_words(en_convert)
@@ -69,7 +72,7 @@ class DoctorPredictionSystem:
             self.label_encoder = LabelEncoder()
             self.label_encoder.fit(self.doctor_data['Disease'])
             # Use features from logistic regression as baseline
-            self.valid_symptoms =  symptom.valid_symptoms
+            self.valid_symptoms = list(self.models['Logistic Regression']["model"].feature_names_in_)
             
         except Exception as e:
             raise Exception(f"Error initializing doctor construction system: {str(e)}")
